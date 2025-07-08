@@ -1,0 +1,65 @@
+import pandas as pd
+import os
+
+# Collect user inputs
+search_proveedor = input("Enter search term for 'PROVEEDOR' (or leave blank for None): ")
+search_proveedor = search_proveedor if search_proveedor else None
+
+search_siglas = input("Enter search term for 'SIGLAS' (or leave blank for None): ")
+search_siglas = search_siglas if search_siglas else None
+
+search_contrato = input("Enter search term for 'DESCRIPCION_CONTRATO' (or leave blank for None): ")
+search_contrato = search_contrato if search_contrato else None
+
+print("\nGo grab a coffee, I'm digging through the contracts...")
+
+# File paths
+amlo_file_path = 'compranet_grouped_amlo_by_provider.xlsx'
+epn_file_path = 'compranet_grouped_epn_by_provider.xlsx'
+
+# Filter function
+def apply_filters(df, proveedor_term=None, siglas_term=None, descripcion_contrato_term=None):
+    if proveedor_term:
+        df = df[df['PROVEEDOR'].str.contains(proveedor_term, case=False, na=False)]
+    if siglas_term:
+        df = df[df['SIGLAS'].str.contains(siglas_term, case=False, na=False)]
+    if descripcion_contrato_term:
+        df = df[df['DESCRIPCION_CONTRATO'].str.contains(descripcion_contrato_term, case=False, na=False)]
+    return df
+
+# Load data
+amlo_df = pd.read_excel(amlo_file_path)
+epn_df = pd.read_excel(epn_file_path)
+
+# Apply filters
+amlo_filtered = apply_filters(amlo_df, search_proveedor, search_siglas, search_contrato)
+epn_filtered = apply_filters(epn_df, search_proveedor, search_siglas, search_contrato)
+
+# Add source col
+amlo_filtered['SOURCE_FILE'] = 'AMLO'
+epn_filtered['SOURCE_FILE'] = 'EPN'
+
+# Combine results
+concatenated_df = pd.concat([amlo_filtered, epn_filtered])
+
+# Generate output filename
+output_file_name = (
+    f"{search_proveedor if search_proveedor else ''}_"
+    f"{search_siglas if search_siglas else ''}_"
+    f"{search_contrato if search_contrato else ''}_info.xlsx"
+).strip("_").lower()
+
+# Skip if no results
+if concatenated_df.empty:
+    print("No matching contracts found. Sorry. No file was saved.")
+
+# Save as new file
+else:
+    concatenated_df.to_excel(output_file_name, index=False)
+    print(f"File saved as: {output_file_name}")
+
+ # Open the file automatically 
+    try:
+        os.startfile(output_file_name)
+    except:
+        pass
